@@ -1,0 +1,1 @@
+cd src && javac org/zhaw/tme/*.java && java org.zhaw.tme.Main $@
