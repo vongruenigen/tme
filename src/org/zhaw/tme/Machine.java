@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.lang.StringBuffer;
+import java.lang.Thread;
 
 public class Machine {
     private String specification;
@@ -66,6 +67,10 @@ public class Machine {
               System.out.println();
               this.tape.output();
               System.out.println();
+            }
+
+            if (verbose && !stepMode) {
+              try { Thread.sleep(50); } catch (Exception ex) {}
             }
 
             if (stepMode && !this.acceptingStates.contains(currentState)) {
