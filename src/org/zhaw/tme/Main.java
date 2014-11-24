@@ -12,7 +12,7 @@ public class Main {
      * @param args
      */
     public static void main(String[] args) {
-        System.out.println("TME - Turing Machine Emulator (by vongrdir & weilemar)");
+        System.out.println("TME - Turing Machine Emulator");
         System.out.println();
 
         boolean verbose = false;
@@ -93,7 +93,7 @@ public class Main {
 
         Machine tm = new Machine(states, alphabet, tapeAlphabet, q0, blankSymbol, acceptingStates);
 
-        tm.run(parsedArgs.get("-w"), false, false);
+        tm.run(parsedArgs.get("-w"), parsedArgs.containsKey("-v"), parsedArgs.containsKey("-s"));
     }
 
     private static HashMap<String, String> parseArgs(String[] args) {
@@ -103,6 +103,7 @@ public class Main {
         for (String arg : args) {
             if (arg.startsWith("-")) {
                 currentKey = arg;
+                parsedArgs.put(currentKey, null);
             } else {
                 parsedArgs.put(currentKey, arg);
             }

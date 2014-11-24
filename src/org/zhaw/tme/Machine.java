@@ -3,6 +3,7 @@ package org.zhaw.tme;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.lang.StringBuffer;
 
 public class Machine {
     private String specification;
@@ -27,11 +28,13 @@ public class Machine {
     }
 
     public void run(String word, boolean verbose, boolean stepMode) {
-      if (verbose) {
-        this.outputDescription();
-      }
+      // If the step mode is activated, we also activate verbose as default
+      if (stepMode) { verbose = true; }
+      if (verbose)  { this.outputDescription(); }
 
-      this.tape.setContent(word);
+      if (!this.tape.setContent(word)) {
+        return;
+      }
 
       System.out.println("Running calculation on word '" + word + "'.\n");
 
@@ -81,31 +84,7 @@ public class Machine {
 
       System.out.format("TM halted at state %s after %d steps with the following content on the tape:\n\n", currentState.getName(), stepCount);
       this.tape.output();
-
-      ArrayList<String> tapeContent = this.tape.getContent();
-      String tapeContentInWords = "";
-      String currentSymbol = null;
-      int currentSymbolCount = 0;
-
-      for (String symbol : tapeContent) {
-        if (!symbol.equals(this.blankSymbol)) {
-          if (currentSymbol != null && symbol.equals(currentSymbol)) {
-            currentSymbolCount++;
-          } else {
-            if (currentSymbol != null && currentSymbolCount > 0) {
-              tapeContentInWords += String.format("%d times '%s', ", currentSymbolCount, currentSymbol);
-            }
-
-            // TODO: Does not work!
-
-            currentSymbol = symbol;
-            currentSymbolCount = 1;
-          }
-        }
-      }
-
-      System.out.println("\nIn words: " + tapeContentInWords);
-      System.out.println();
+      this.outputTapeDescription();
     }
 
     private void initialize() {
@@ -121,21 +100,28 @@ public class Machine {
       for (State s : this.states) {
         String name = s.getName();
 
+        states += "|-- (" + name + ")";
+
         if (this.acceptingStates.contains(s)) {
-          name += " (accepting)";
+          states += " [accepting]";
         } else if (s == this.startState) {
-          name += " (start)";
+          states += " [start]";
         }
 
-        states += "|-- " + name + "\n";
-
-        states += "|\n";
+        states += "\n|\n";
 
         if (s.getTransitions().size() > 0) {
           for (Transition t : s.getTransitions()) {
+            String direction = t.getDirection().toString();
+
+            // For aligned printing of the directions
+            if (direction.equals("LEFT") || direction.equals("NONE")) {
+              direction += " ";
+            }
+
             states += String.format("|---- %s/%s, %s => %s\n", t.getSymbolUnderCursor(),
                                                                t.getSymbolToWriteBack(),
-                                                               t.getDirection(),
+                                                               direction,
                                                                t.getToState().getName());
           }
         } else {
@@ -150,6 +136,50 @@ public class Machine {
       System.out.println("Blank symbol:   '" + this.blankSymbol + "'\n");
       System.out.println("States and transitions:\n\n" + states);
       System.out.println("------------------------------------\n");
+    }
+
+    private void outputTapeDescription() {
+      ArrayList<String> tapeContent = this.tape.getContent();
+      int tapeContentSize = tapeContent.size();
+      StringBuffer tapeContentInWords = new StringBuffer();
+
+      String currentSymbol = null;
+      int currentSymbolCount = 0;
+
+      for (int i = 0; i < tapeContentSize; i++) {
+        String symbol = tapeContent.get(i);
+
+        boolean isBlankSymbol = symbol.equals(this.blankSymbol);
+        boolean isCurrentSymbol = symbol.equals(currentSymbol);
+        boolean isLastIndex = i == tapeContentSize - 1;
+
+        if (!isCurrentSymbol || isLastIndex) {
+          if (isCurrentSymbol) currentSymbolCount++;
+
+          if (currentSymbolCount > 0) {
+            String symbolText = String.format("%d times '%s'", currentSymbolCount, currentSymbol);
+
+            if (tapeContentInWords.length() > 0) {
+              tapeContentInWords.append(", ");
+            }
+
+            tapeContentInWords.append(symbolText);
+
+            currentSymbol = null;
+            currentSymbolCount = 0;
+          }
+
+          if (!isBlankSymbol) {
+            currentSymbol = symbol;
+            currentSymbolCount = 1;
+          }
+        } else {
+          currentSymbolCount++;
+        }
+      }
+
+      System.out.println("\nIn words (without blank symbols): " + tapeContentInWords.toString());
+      System.out.println();
     }
 
     private void askNextStep() {

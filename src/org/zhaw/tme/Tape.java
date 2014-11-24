@@ -5,9 +5,10 @@ import java.util.Arrays;
 import java.util.ArrayList;
 
 public class Tape {
-    public final static int TAPE_SIZE = 50;
+    public final static int TAPE_SIZE = 31;
+    public final static int HEAD_POSITION = 15;
 
-    private int cursorPosition;
+    private int headPosition;
     private String blankSymbol;
     private Alphabet alphabet;
     private ArrayList<String> content;
@@ -16,23 +17,18 @@ public class Tape {
         this.alphabet = alphabet;
         this.blankSymbol = blankSymbol;
         this.content = new ArrayList<String>();
+        this.headPosition = 0;
     }
 
-    public void setContent(String content) {
+    public boolean setContent(String content) {
       if (!this.alphabet.isCompatible(content)) {
-        System.out.println("ERROR: Word '" + content + "' is not compatible!");
-        return;
+        System.out.println("ERROR: Word '" + content + "' is not compatible with the tape alphabet!");
+        return false;
       }
 
       this.content = new ArrayList<String>(Arrays.asList(content.split("(?!^)")));
-      this.adjust();
 
-      for (int i = 0; i < this.content.size(); i++) {
-        if (this.content.get(i) != this.blankSymbol) {
-          this.cursorPosition = i;
-          break;
-        }
-      }
+      return true;
     }
 
     public ArrayList<String> getContent() {
@@ -40,31 +36,63 @@ public class Tape {
     }
 
     public void write(String symbol) {
-      this.content.set(this.cursorPosition, symbol);
-      this.adjust();
+      if (this.headPosition < 0) {
+        int blanksToAdd = Math.abs(this.headPosition);
+
+        for (int i = 0; i < blanksToAdd; i++) {
+          this.content.add(0, this.blankSymbol);
+        }
+
+        this.headPosition = 0;
+      }
+
+      if (this.headPosition > this.content.size() - 1) {
+        int blanksToAdd = this.headPosition - (this.content.size() - 1);
+
+        for (int i = 0; i < blanksToAdd; i++) {
+          this.content.add(this.blankSymbol);
+        }
+      }
+
+      this.content.set(this.headPosition, symbol);
     }
 
     public String getCurrentSymbol() {
-      return this.content.get(this.cursorPosition);
+      if (this.headPosition < 0 || this.headPosition > this.content.size() - 1) {
+        return this.blankSymbol;
+      } else {
+        return this.content.get(this.headPosition);
+      }
     }
 
     public void output() {
-      int lastIndex = this.content.size() - 1;
       System.out.print("      |");
 
-      for (int i = 0; i < this.content.size(); i++) {
-        System.out.print(i == this.cursorPosition ? "V" : " ");
-        if (i != lastIndex) System.out.print(" ");
+      for (int i = 0; i < TAPE_SIZE; i++) {
+        String symbol = "  ";
+
+        if (i == HEAD_POSITION) { symbol = "V "; }
+        if (i == TAPE_SIZE - 1) { symbol = " ";  }
+
+        System.out.print(symbol);
       }
 
       System.out.print("|\n");
+      System.out.print("Tape: |");
 
-      for (int i = 0; i < this.content.size(); i++) {
-        if (i == 0) {
-          System.out.print("Tape: |");
+      int startContentAt = ((TAPE_SIZE - 1) / 2) - this.headPosition;
+
+      for (int i = 0; i < TAPE_SIZE; i++) {
+        String symbol = null;
+        boolean printContent = i >= startContentAt && i - startContentAt < this.content.size();
+
+        if (printContent) {
+          symbol = this.content.get(i - startContentAt);
+        } else {
+          symbol = this.blankSymbol;
         }
 
-        System.out.format("%s|", this.content.get(i));
+        System.out.format("%s|", symbol);
       }
 
       System.out.println();
@@ -72,37 +100,8 @@ public class Tape {
 
     public void moveHead(HeadDirection direction) {
       switch (direction) {
-        case LEFT:  this.cursorPosition--; break;
-        case RIGHT: this.cursorPosition++; break;
-      }
-
-      if (this.cursorPosition >= this.content.size()) {
-        this.content.add(blankSymbol);
-      }
-    }
-
-    private void adjust() {
-      if (this.content.size() == 0) {
-        for (int i = 0; i < TAPE_SIZE; i++) {
-          this.content.add(this.blankSymbol);
-        }
-      } else {
-        int remaining = TAPE_SIZE - this.content.size();
-
-        if (remaining < 0) {
-          return;
-        } else {
-          int blankSymbolCount = remaining / 2;
-
-          for (int i = 0; i < blankSymbolCount; i++) {
-            this.content.add(this.blankSymbol);
-            this.content.add(0, this.blankSymbol);
-          }
-
-          if (remaining % 2 == 1) {
-            this.content.add(this.blankSymbol);
-          }
-        }
+        case LEFT:  this.headPosition--; break;
+        case RIGHT: this.headPosition++; break;
       }
     }
 }
